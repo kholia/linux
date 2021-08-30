@@ -186,6 +186,10 @@ config X86_DISABLED_FEATURE_TDX_GUEST
 	def_bool y
 	depends on !INTEL_TDX_GUEST
 
+config X86_DISABLED_FEATURE_KVM_PVM_GUEST
+	def_bool y
+	depends on !PVM_GUEST
+
 config X86_DISABLED_FEATURE_USER_SHSTK
 	def_bool y
 	depends on !X86_USER_SHADOW_STACK
