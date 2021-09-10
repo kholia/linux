@@ -35,6 +35,7 @@
 #include <asm/io_bitmap.h>
 #include <asm/gsseg.h>
 #include <asm/msr.h>
+#include <asm/vsyscall.h>
 
 /* stub always returning 0. */
 DEFINE_ASM_FUNC(paravirt_ret0, "xor %eax,%eax", .entry.text);
@@ -208,6 +209,9 @@ struct paravirt_patch_template pv_ops = {
 	.mmu.lazy_mode_flush	= paravirt_nop,
 
 	.mmu.set_fixmap		= native_set_fixmap,
+#ifdef CONFIG_X86_VSYSCALL_EMULATION
+	.mmu.set_vsyscall_page	= native_set_vsyscall_page,
+#endif
 #endif /* CONFIG_PARAVIRT_XXL */
 };
 
