@@ -92,6 +92,7 @@ unsigned long __init __startup_64(unsigned long p2v_offset,
 	unsigned long va_text, va_end;
 	unsigned long pgtable_flags;
 	unsigned long load_delta;
+	unsigned long kernel_map_base_offset = 0;
 	pgdval_t *pgd;
 	p4dval_t *p4d;
 	pudval_t *pud;
@@ -143,6 +144,11 @@ unsigned long __init __startup_64(unsigned long p2v_offset,
 		i = pud_index(va_text);
 		pud[i] = (pudval_t)rip_rel_ptr(level2_kernel_pgt) | _KERNPG_TABLE;
 		pud[i + 1] = (pudval_t)rip_rel_ptr(level2_fixmap_pgt) | _PAGE_TABLE;
+
+		kernel_map_base = va_text & PUD_MASK;
+		kernel_map_base_offset = kernel_map_base - __START_KERNEL_map;
+		phys_base += kernel_map_base_offset;
+		__FIXADDR_TOP += kernel_map_base_offset;
 	} else {
 		pgd[pgd_index(__START_KERNEL_map)] += load_delta;
 
@@ -228,7 +234,7 @@ unsigned long __init __startup_64(unsigned long p2v_offset,
 	/* fixup pages that are part of the kernel image */
 	for (; i <= pmd_index(va_end); i++)
 		if (pmd[i] & _PAGE_PRESENT)
-			pmd[i] += load_delta;
+			pmd[i] += load_delta + kernel_map_base_offset;
 
 	/* invalidate pages after the kernel image */
 	for (; i < PTRS_PER_PMD; i++)
