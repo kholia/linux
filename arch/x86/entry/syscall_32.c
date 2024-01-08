@@ -6,6 +6,7 @@
 #include <linux/cache.h>
 #include <linux/syscalls.h>
 #include <linux/entry-common.h>
+#include <linux/export.h>
 #include <linux/nospec.h>
 #include <linux/uaccess.h>
 #include <asm/apic.h>
@@ -59,6 +60,7 @@ static __always_inline int syscall_32_enter(struct pt_regs *regs)
 
 #ifdef CONFIG_IA32_EMULATION
 bool __ia32_enabled __ro_after_init = !IS_ENABLED(CONFIG_IA32_EMULATION_DEFAULT_DISABLED);
+EXPORT_SYMBOL_GPL(__ia32_enabled);
 
 static int __init ia32_emulation_override_cmdline(char *arg)
 {
