@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <linux/kvm_host.h>
 #include <asm/intel_pt.h>
+#include <asm/pvm_para.h>
 #include <asm/vmx.h>
 
 #include "hyperv.h"
@@ -277,6 +278,11 @@ static const u32 emulated_msrs_all[] = {
 
 	MSR_KVM_ASYNC_PF_EN, MSR_KVM_STEAL_TIME,
 	MSR_KVM_PV_EOI_EN, MSR_KVM_ASYNC_PF_INT, MSR_KVM_ASYNC_PF_ACK,
+
+	MSR_PVM_LINEAR_ADDRESS_RANGE,
+	MSR_PVM_VCPU_STRUCT,
+	MSR_PVM_EVENT_ENTRY,
+	MSR_PVM_RETU_RIP,
 
 	MSR_IA32_TSC_ADJUST,
 	MSR_IA32_TSC_DEADLINE,
