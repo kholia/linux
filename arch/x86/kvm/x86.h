@@ -899,5 +899,6 @@ int ____kvm_emulate_hypercall(struct kvm_vcpu *vcpu, int cpl,
 })
 
 int kvm_emulate_hypercall(struct kvm_vcpu *vcpu);
+int kvm_emulate_hypercall_noskip(struct kvm_vcpu *vcpu);
 
 #endif
