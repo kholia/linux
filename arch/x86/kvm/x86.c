@@ -7527,6 +7527,7 @@ static void kvm_inject_exception(struct kvm_vcpu *vcpu)
 				vcpu->arch.exception.error_code,
 				vcpu->arch.exception.injected);
 
+	vcpu->arch.exception.injected = true;
 	kvm_x86_call(inject_exception)(vcpu);
 }
 
@@ -7676,7 +7677,6 @@ static int kvm_check_and_inject_events(struct kvm_vcpu *vcpu,
 		kvm_inject_exception(vcpu);
 
 		vcpu->arch.exception.pending = false;
-		vcpu->arch.exception.injected = true;
 
 		can_inject = false;
 	}
