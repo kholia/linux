@@ -10396,6 +10396,16 @@ static int complete_hypercall_exit(struct kvm_vcpu *vcpu)
 	return kvm_skip_emulated_instruction(vcpu);
 }
 
+static int complete_hypercall_noskip(struct kvm_vcpu *vcpu)
+{
+	u64 ret = vcpu->run->hypercall.ret;
+
+	if (!is_64_bit_hypercall(vcpu))
+		ret = (u32)ret;
+	kvm_rax_write_raw(vcpu, ret);
+	return 1;
+}
+
 int ____kvm_emulate_hypercall(struct kvm_vcpu *vcpu, int cpl,
 			      int (*complete_hypercall)(struct kvm_vcpu *))
 {
@@ -10501,7 +10511,8 @@ out:
 }
 EXPORT_SYMBOL_FOR_KVM_INTERNAL(____kvm_emulate_hypercall);
 
-int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
+static int kvm_handle_hypercall(struct kvm_vcpu *vcpu,
+				int (*complete_hypercall)(struct kvm_vcpu *))
 {
 	if (kvm_xen_hypercall_enabled(vcpu->kvm))
 		return kvm_xen_hypercall(vcpu);
@@ -10510,9 +10521,20 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 		return kvm_hv_hypercall(vcpu);
 
 	return __kvm_emulate_hypercall(vcpu, kvm_x86_call(get_cpl)(vcpu),
-				       complete_hypercall_exit);
+				       complete_hypercall);
+}
+
+int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
+{
+	return kvm_handle_hypercall(vcpu, complete_hypercall_exit);
 }
 EXPORT_SYMBOL_FOR_KVM_INTERNAL(kvm_emulate_hypercall);
+
+int kvm_emulate_hypercall_noskip(struct kvm_vcpu *vcpu)
+{
+	return kvm_handle_hypercall(vcpu, complete_hypercall_noskip);
+}
+EXPORT_SYMBOL_FOR_KVM_INTERNAL(kvm_emulate_hypercall_noskip);
 
 static int emulator_fix_hypercall(struct x86_emulate_ctxt *ctxt)
 {

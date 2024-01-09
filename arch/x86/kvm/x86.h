@@ -678,6 +678,7 @@ int ____kvm_emulate_hypercall(struct kvm_vcpu *vcpu, int cpl,
 })
 
 int kvm_emulate_hypercall(struct kvm_vcpu *vcpu);
+int kvm_emulate_hypercall_noskip(struct kvm_vcpu *vcpu);
 
 #define CET_US_RESERVED_BITS		GENMASK(9, 6)
 #define CET_US_SHSTK_MASK_BITS		GENMASK(1, 0)
