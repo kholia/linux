@@ -7726,6 +7726,7 @@ void kvm_arch_flush_shadow_memslot(struct kvm *kvm,
 
 	if (zap_all)
 		__kvm_mmu_zap_all_fast_back_half(kvm);
+	kvm_make_all_cpus_request(kvm, KVM_REQ_GPC_REFRESH);
 }
 
 void kvm_mmu_invalidate_mmio_sptes(struct kvm *kvm, u64 gen)
