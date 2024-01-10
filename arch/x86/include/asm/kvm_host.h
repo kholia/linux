@@ -2225,6 +2225,13 @@ extern bool tdp_enabled;
  *                          an instruction if it could generate a given software
  *                          interrupt, which must be encoded via
  *                          EMULTYPE_SET_SOFT_INT_VECTOR().
+
+ * EMULTYPE_PVM_GP - Set when emulating an intercepted #GP for PVM. Privilege
+ *		     instruction in PVM guest supervisor mode will trigger a
+ *		     #GP and be emulated by PVM. But if a non-privilege
+ *		     instruction triggers a #GP in PVM guest supervisor mode
+ *		     and is not implemented in the emulator, the emulator
+ *		     should reinject the #GP into guest.
  */
 #define EMULTYPE_NO_DECODE	    (1 << 0)
 #define EMULTYPE_TRAP_UD	    (1 << 1)
@@ -2236,6 +2243,7 @@ extern bool tdp_enabled;
 #define EMULTYPE_COMPLETE_USER_EXIT (1 << 7)
 #define EMULTYPE_WRITE_PF_TO_SP	    (1 << 8)
 #define EMULTYPE_SKIP_SOFT_INT	    (1 << 9)
+#define EMULTYPE_PVM_GP		    (1 << 10)
 
 #define EMULTYPE_SET_SOFT_INT_VECTOR(v)	((u32)((v) & 0xff) << 16)
 #define EMULTYPE_GET_SOFT_INT_VECTOR(e)	(((e) >> 16) & 0xff)
