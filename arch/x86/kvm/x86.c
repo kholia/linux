@@ -8245,6 +8245,9 @@ static int vcpu_enter_guest(struct kvm_vcpu *vcpu)
 		}
 		if (kvm_check_request(KVM_REQ_VMSA_PAGE_RELOAD, vcpu))
 			kvm_x86_call(reload_vmsa)(vcpu);
+
+		if (kvm_check_request(KVM_REQ_GPC_REFRESH, vcpu))
+			kvm_x86_call(vcpu_gpc_refresh)(vcpu);
 	}
 
 	if (kvm_check_request(KVM_REQ_EVENT, vcpu) || req_int_win ||
