@@ -74,6 +74,7 @@
 #include <asm/virt.h>
 #include <asm/posted_intr.h>
 #include <asm/runtime-const.h>
+#include <asm/pvm_para.h>
 
 #include "cpu.h"
 
@@ -2263,7 +2264,14 @@ static void wrmsrq_cstar(unsigned long val)
 
 static inline void idt_syscall_init(void)
 {
+#ifdef CONFIG_PVM_GUEST
+	if (boot_cpu_has(X86_FEATURE_KVM_PVM_GUEST))
+		wrmsrq(MSR_LSTAR, (unsigned long)entry_SYSCALL_64_pvm);
+	else
+		wrmsrq(MSR_LSTAR, (unsigned long)entry_SYSCALL_64);
+#else
 	wrmsrq(MSR_LSTAR, (unsigned long)entry_SYSCALL_64);
+#endif
 
 	if (ia32_enabled()) {
 		wrmsrq_cstar((unsigned long)entry_SYSCALL_compat);
@@ -2443,6 +2451,8 @@ void cpu_init_exception_handling(bool boot_cpu)
 	} else {
 		load_current_idt();
 	}
+
+	pvm_setup_event_handling();
 }
 
 void __init cpu_init_replace_early_idt(void)
@@ -2451,6 +2461,8 @@ void __init cpu_init_replace_early_idt(void)
 		cpu_init_fred_exceptions();
 	else
 		idt_setup_early_pf();
+
+	pvm_setup_early_traps();
 }
 
 /*
