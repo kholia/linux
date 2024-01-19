@@ -253,11 +253,17 @@ static inline void vdso_read_cpunode(unsigned *cpu, unsigned *node)
 	 * hoisting it out of the calling function.
 	 *
 	 * If RDPID is available, use it.
+	 *
+	 * If this is a PVM guest and RDPID is not available, use RDTSCP.
 	 */
-	alternative_io ("lsl %[seg],%k[p]",
-			"rdpid %[p]",
-			X86_FEATURE_RDPID,
-			[p] "=r" (p), [seg] "r" (__CPUNODE_SEG));
+	alternative_io_2("lsl %[seg],%k[p]",
+			 "rdtscp\n\t"
+			 "mov %%ecx,%%eax",
+			 X86_FEATURE_KVM_PVM_GUEST,
+			 "rdpid %[p]",
+			 X86_FEATURE_RDPID,
+			 [p] "=a" (p), [seg] "r" (__CPUNODE_SEG)
+			 : "cx", "dx");
 
 	if (cpu)
 		*cpu = (p & VDSO_CPUNODE_MASK);
