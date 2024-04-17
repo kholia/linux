@@ -6,6 +6,7 @@
 #include <asm/e820/types.h>
 #include <asm/pgtable.h>
 #include <asm/processor.h>
+#include <asm/pvm_para.h>
 #include "../string.h"
 #include "efi.h"
 
@@ -101,6 +102,36 @@ static unsigned long find_trampoline_placement(void)
 	return bios_start - TRAMPOLINE_32BIT_SIZE;
 }
 
+#ifdef CONFIG_PVM_GUEST
+bool pvm_detected __section(".data");
+#endif
+
+static bool detect_cpuid_la57(void)
+{
+#ifdef CONFIG_PVM_GUEST
+	if (pvm_detected) {
+		u32 eax, ebx, ecx, edx;
+
+		eax = 0;
+		pvm_cpuid(&eax, &ebx, &ecx, &edx);
+		if (eax >= 7) {
+			eax = 7;
+			ecx = 0;
+			pvm_cpuid(&eax, &ebx, &ecx, &edx);
+			if (ecx & (1 << (X86_FEATURE_LA57 & 31)))
+				return true;
+		}
+		return false;
+	}
+#endif
+
+	if (native_cpuid_eax(0) >= 7 &&
+	    (native_cpuid_ecx(7) & (1 << (X86_FEATURE_LA57 & 31))))
+		return true;
+
+	return false;
+}
+
 asmlinkage void configure_5level_paging(struct boot_params *bp, void *pgtable)
 {
 	void (*toggle_la57)(void *cr3);
@@ -109,6 +140,11 @@ asmlinkage void configure_5level_paging(struct boot_params *bp, void *pgtable)
 	/* Initialize boot_params. Required for cmdline_find_option_bool(). */
 	sanitize_boot_params(bp);
 	boot_params_ptr = bp;
+
+#ifdef CONFIG_PVM_GUEST
+	/* Detect PVM hypervisor support. Required for detect_cpuid(). */
+	pvm_detected = pvm_detect();
+#endif
 
 	/*
 	 * Check if LA57 is desired and supported.
@@ -120,7 +156,7 @@ asmlinkage void configure_5level_paging(struct boot_params *bp, void *pgtable)
 	 *     + the leaf has the feature bit set
 	 */
 	if (!cmdline_find_option_bool("no5lvl") &&
-	    native_cpuid_eax(0) >= 7 && (native_cpuid_ecx(7) & BIT(16))) {
+	    detect_cpuid_la57()) {
 		l5_required = true;
 
 		/* Initialize variables for 5-level paging */
