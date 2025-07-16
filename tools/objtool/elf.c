@@ -1711,7 +1711,7 @@ struct section *elf_create_section_pair(struct elf *elf, const char *name,
 	struct section *sec;
 
 	sec = elf_create_section(elf, name, nr * entsize, entsize,
-				 SHT_PROGBITS, 1, SHF_ALLOC);
+				 SHT_PROGBITS, 1, SHF_ALLOC | SHF_WRITE);
 	if (!sec)
 		return NULL;
 
