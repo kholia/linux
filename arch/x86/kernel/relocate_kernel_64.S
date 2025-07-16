@@ -319,7 +319,7 @@ SYM_CODE_START_LOCAL_NOALIGN(virtual_mapped)
 
 #ifdef CONFIG_KEXEC_JUMP
 	/* Saved in save_processor_state. */
-	movq    $saved_context, %rax
+	leaq    saved_context(%rip), %rax
 	lgdt    saved_context_gdt_desc(%rax)
 #endif
 
