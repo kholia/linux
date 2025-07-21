@@ -54,6 +54,7 @@ extern unsigned long __startup_64(unsigned long p2v_offset, struct boot_params *
 extern void startup_64_setup_gdt_idt(void);
 extern void startup_64_load_idt(void *vc_handler);
 extern void __pi_startup_64_load_idt(void *vc_handler);
+extern void startup_64_apply_relocations(struct boot_params *bp);
 extern void early_setup_idt(void);
 extern void __init do_early_exception(struct pt_regs *regs, int trapnr);
 
