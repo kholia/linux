@@ -124,17 +124,38 @@ unsigned long __init __startup_64(unsigned long p2v_offset,
 	/* Fixup the physical addresses in the page table */
 
 	pgd = rip_rel_ptr(early_top_pgt);
-	pgd[pgd_index(__START_KERNEL_map)] += load_delta;
+	if (IS_ENABLED(CONFIG_X86_PIE)) {
+		pgd[pgd_index(__START_KERNEL_map)] = 0;
+		pud = (pudval_t *)rip_rel_ptr(level3_kernel_pgt);
 
-	if (la57) {
-		p4d = (p4dval_t *)rip_rel_ptr(level4_kernel_pgt);
-		p4d[MAX_PTRS_PER_P4D - 1] += load_delta;
+		if (la57) {
+			p4d = (p4dval_t *)rip_rel_ptr(level4_kernel_pgt);
+			p4d[MAX_PTRS_PER_P4D - 1] = 0;
+			p4d[p4d_index(va_text)] = (p4dval_t)pud | _PAGE_TABLE;
 
-		pgd[pgd_index(__START_KERNEL_map)] = (pgdval_t)p4d | _PAGE_TABLE;
+			pgd[pgd_index(va_text)] = (pgdval_t)p4d | _PAGE_TABLE;
+		} else {
+			pgd[pgd_index(va_text)] = (pgdval_t)pud | _PAGE_TABLE;
+		}
+
+		pud[PTRS_PER_PUD - 2] = 0;
+		pud[PTRS_PER_PUD - 1] = 0;
+		i = pud_index(va_text);
+		pud[i] = (pudval_t)rip_rel_ptr(level2_kernel_pgt) | _KERNPG_TABLE;
+		pud[i + 1] = (pudval_t)rip_rel_ptr(level2_fixmap_pgt) | _PAGE_TABLE;
+	} else {
+		pgd[pgd_index(__START_KERNEL_map)] += load_delta;
+
+		if (la57) {
+			p4d = (p4dval_t *)rip_rel_ptr(level4_kernel_pgt);
+			p4d[MAX_PTRS_PER_P4D - 1] += load_delta;
+
+			pgd[pgd_index(__START_KERNEL_map)] = (pgdval_t)p4d | _PAGE_TABLE;
+		}
+
+		level3_kernel_pgt[PTRS_PER_PUD - 2].pud += load_delta;
+		level3_kernel_pgt[PTRS_PER_PUD - 1].pud += load_delta;
 	}
-
-	level3_kernel_pgt[PTRS_PER_PUD - 2].pud += load_delta;
-	level3_kernel_pgt[PTRS_PER_PUD - 1].pud += load_delta;
 
 	for (i = FIXMAP_PMD_TOP; i > FIXMAP_PMD_TOP - FIXMAP_PMD_NUM; i--)
 		level2_fixmap_pgt[i].pmd += load_delta;
