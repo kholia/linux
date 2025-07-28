@@ -90,6 +90,7 @@ s64 arch_insn_adjusted_addend(struct instruction *insn, struct reloc *reloc);
 u64 arch_adjusted_addend(struct reloc *reloc);
 
 const char *arch_nop_insn(int len);
+const char *arch_ftrace_nop_insn(int len);
 const char *arch_ret_insn(int len);
 
 int arch_decode_hint_reg(u8 sp_reg, int *base);

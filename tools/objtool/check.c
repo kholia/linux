@@ -1403,7 +1403,7 @@ static int annotate_call_site(struct objtool_file *file,
 
 			if (elf_write_insn(file->elf, insn->sec,
 					   insn->offset, insn->len,
-					   arch_nop_insn(insn->len))) {
+					   arch_ftrace_nop_insn(insn->len))) {
 				return -1;
 			}
 
