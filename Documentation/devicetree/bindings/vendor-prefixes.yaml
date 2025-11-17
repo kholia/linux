@@ -335,6 +335,8 @@ patternProperties:
     description: Clockwork Tech LLC
   "^cloos,.*":
     description: Carl Cloos Schweisstechnik GmbH.
+  "^cmostek,.*":
+    description: CMOSTEK Microelectronics
   "^cloudengines,.*":
     description: Cloud Engines, Inc.
   "^cnm,.*":

@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Sub-1GHz RF transceiver drivers configuration
+#
+
+menuconfig SUB1G
+	tristate "Sub-1GHz RF transceivers"
+	depends on SPI
+	help
+	  This section contains drivers for Sub-1GHz RF transceivers that
+	  operate in the ISM bands below 1GHz (typically 433MHz, 868MHz,
+	  915MHz, etc.). These devices are commonly used for low-power
+	  wireless applications such as IoT, sensor networks, smart home
+	  devices, and industrial automation.
+
+	  If unsure, say N.
+
+if SUB1G
+
+config CMT2300A
+	tristate "CMOSTEK CMT2300A Sub-GHz RF transceiver"
+	depends on SPI
+	select GPIOLIB
+	help
+	  This driver supports the CMOSTEK CMT2300A Sub-GHz RF transceiver.
+	  The CMT2300A is a highly integrated sub-GHz RF transceiver designed
+	  for low power wireless applications in the sub-1GHz ISM bands.
+	  It supports OOK, FSK, and GFSK modulation schemes.
+
+	  The driver provides a character device interface (/dev/sub1g_dev*)
+	  for userspace applications to interact with the transceiver for
+	  transmitting and receiving data.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called cmt2300a.
+
+	  If unsure, say N.
+
+endif # SUB1G

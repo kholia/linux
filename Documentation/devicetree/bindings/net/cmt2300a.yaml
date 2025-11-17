@@ -1,0 +1,107 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/net/wireless/cmostek,cmt2300a.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: CMOSTEK CMT2300A Sub-GHz Radio Transceiver
+
+maintainers:
+  - Tuya Inc. <support@tuya.com>
+
+description: |
+  The CMT2300A is a highly integrated sub-GHz RF transceiver designed for
+  low power wireless applications in the sub-1GHz ISM bands. It supports
+  OOK, FSK, and GFSK modulation schemes.
+
+  This driver uses bit-banging GPIO for SPI communication instead of the
+  native SPI controller, allowing for more flexible GPIO usage and timing
+  control.
+
+  Datasheet: https://www.cmostek.com/download/CMT2300A.pdf
+
+properties:
+  compatible:
+    const: cmostek,cmt2300a
+
+  reg:
+    maxItems: 1
+    description: SPI chip select number (may be unused with bit-banging)
+
+  csb-gpios:
+    maxItems: 1
+    description: |
+      GPIO for CSB (Chip Select for registers) - required for bit-banging SPI.
+      Active low chip select for register access.
+
+  fcsb-gpios:
+    maxItems: 1
+    description: |
+      GPIO for FCSB (FIFO Chip Select) - required for bit-banging SPI.
+      Active low chip select for FIFO access.
+
+  sclk-gpios:
+    maxItems: 1
+    description: |
+      GPIO for SCLK (SPI Clock) - required for bit-banging SPI.
+      Serial clock signal.
+
+  sdio-gpios:
+    maxItems: 1
+    description: |
+      GPIO for SDIO (SPI Data I/O) - required for bit-banging SPI.
+      Bidirectional data line (MOSI/MISO combined).
+
+  gpio1-gpios:
+    maxItems: 1
+    description: |
+      Optional GPIO1 pin for status monitoring (interrupt, data out, data clock).
+      Can be configured as TX_DONE interrupt, RX interrupt, or data clock.
+
+  gpio2-gpios:
+    maxItems: 1
+    description: |
+      Optional GPIO2 pin for status monitoring (interrupt, data out, data clock).
+      Can be configured as PKT_OK interrupt, RX interrupt, or data out.
+
+  gpio3-gpios:
+    maxItems: 1
+    description: |
+      Optional GPIO3 pin for status monitoring (interrupt, data out, clock out).
+      Can be configured as INT2 output, data out, or clock output.
+
+required:
+  - compatible
+  - reg
+  - csb-gpios
+  - fcsb-gpios
+  - sclk-gpios
+  - sdio-gpios
+
+allOf:
+  - $ref: /schemas/spi/spi-peripheral-props.yaml#
+
+unevaluatedProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/gpio/gpio.h>
+
+    spi {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        radio@0 {
+            compatible = "cmostek,cmt2300a";
+            reg = <0>;
+            /* Bit-banging SPI GPIOs */
+            csb-gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+            fcsb-gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
+            sclk-gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
+            sdio-gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
+            /* Optional status monitoring GPIOs */
+            gpio1-gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+            gpio2-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
+            gpio3-gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+        };
+    };

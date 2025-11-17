@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Makefile for Sub-1GHz RF transceiver drivers
+#
+
+obj-$(CONFIG_CMT2300A) += cmt2300a.o
+
+# Enable debug messages for CMT2300A driver
+# Uncomment the following line to enable verbose debug output:
+# CFLAGS_cmt2300a.o := -DDEBUG_CMT2300A

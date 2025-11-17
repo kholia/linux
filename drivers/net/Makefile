@@ -73,6 +73,7 @@ obj-$(CONFIG_SLHC) += slip/
 obj-$(CONFIG_SUNGEM_PHY) += sungem_phy.o
 obj-$(CONFIG_WAN) += wan/
 obj-$(CONFIG_WLAN) += wireless/
+obj-$(CONFIG_SUB1G) += sub1g/
 obj-$(CONFIG_IEEE802154) += ieee802154/
 obj-$(CONFIG_WWAN) += wwan/
 obj-$(CONFIG_MCTP) += mctp/

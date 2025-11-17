@@ -1,0 +1,65 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Device Tree Overlay for CMT2300A on Raspberry Pi Zero 2 W
+ *
+ * This overlay configures the CMT2300A sub-GHz radio transceiver
+ * using bit-banging GPIO for SPI communication.
+ *
+ * Hardware Connection (matching working RP2040 setup):
+ * =====================================================
+ * Sequential pin layout for easy wiring (all in Pin 11-22 range)
+ *
+ * CMT2300A Pin | Pi GPIO | Physical Pin | Function
+ * -------------|---------|--------------|----------
+ * SDIO         | GPIO 17 | Pin 11       | SPI Data I/O (bidirectional)
+ * SCLK         | GPIO 18 | Pin 12       | SPI Clock
+ * CSB          | GPIO 27 | Pin 13       | Chip Select (registers)
+ * GND          | GND     | Pin 14       | Ground
+ * FCSB         | GPIO 22 | Pin 15       | FIFO Chip Select
+ * GPO1         | GPIO 23 | Pin 16       | Status monitoring
+ * VCC          | 3.3V    | Pin 17       | Power
+ * GPO2         | GPIO 24 | Pin 18       | Status monitoring
+ * GPO3         | GPIO 25 | Pin 22       | Interrupt (TX_DONE/PKT_DONE)
+ *
+ * To compile and install:
+ *   dtc -@ -I dts -O dtb -o cmt2300a.dtbo cmt2300a-overlay.dts
+ *   sudo cp cmt2300a.dtbo /boot/overlays/
+ *
+ * Add to /boot/config.txt:
+ *   dtoverlay=cmt2300a
+ *
+ * Then reboot.
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2835";
+
+	fragment@0 {
+		target = <&spi0>;
+		__overlay__ {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			cmt2300a: cmt2300a@0 {
+				compatible = "cmostek,cmt2300a";
+				reg = <0>;
+				status = "okay";
+
+				/* Bit-banging SPI GPIOs - Sequential pins 11-15 */
+				csb-gpios = <&gpio 27 0>;   /* GPIO 27 (Pin 13), active high */
+				fcsb-gpios = <&gpio 22 0>;  /* GPIO 22 (Pin 15), active high */
+				sclk-gpios = <&gpio 18 0>;  /* GPIO 18 (Pin 12), active high */
+				sdio-gpios = <&gpio 17 0>;  /* GPIO 17 (Pin 11), active high */
+
+				/* Optional status monitoring GPIOs - Sequential pins 16-22 */
+				gpio1-gpios = <&gpio 23 0>; /* GPIO 23 (Pin 16), active high */
+				gpio2-gpios = <&gpio 24 0>; /* GPIO 24 (Pin 18), active high */
+				gpio3-gpios = <&gpio 25 0>; /* GPIO 25 (Pin 22 - interrupt), active high */
+			};
+		};
+	};
+};

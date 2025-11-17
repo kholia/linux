@@ -544,6 +544,8 @@ source "drivers/net/usb/Kconfig"
 
 source "drivers/net/wireless/Kconfig"
 
+source "drivers/net/sub1g/Kconfig"
+
 source "drivers/net/wan/Kconfig"
 
 source "drivers/net/ieee802154/Kconfig"
