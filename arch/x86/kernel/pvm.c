@@ -16,6 +16,7 @@
 #include <asm/cpufeature.h>
 #include <asm/cpu_entry_area.h>
 #include <asm/desc.h>
+#include <asm/kdebug.h>
 #include <asm/pvm_para.h>
 #include <asm/setup.h>
 #include <asm/traps.h>
@@ -89,17 +90,17 @@ static void pvm_load_gs_index(unsigned int sel)
 	}
 }
 
-static unsigned long long pvm_read_msr_safe(unsigned int msr, int *err)
+static int pvm_read_msr_safe(u32 msr, u64 *val)
 {
 	switch (msr) {
 	case MSR_FS_BASE:
-		*err = 0;
-		return rdfsbase();
+		*val = rdfsbase();
+		return 0;
 	case MSR_KERNEL_GS_BASE:
-		*err = 0;
-		return this_cpu_read(pvm_vcpu_struct.user_gsbase);
+		*val = this_cpu_read(pvm_vcpu_struct.user_gsbase);
+		return 0;
 	default:
-		return native_read_msr_safe(msr, err);
+		return native_read_msr_safe(msr, val);
 	}
 }
 
@@ -115,9 +116,8 @@ static unsigned long long pvm_read_msr(unsigned int msr)
 	}
 }
 
-static int notrace pvm_write_msr_safe(unsigned int msr, u32 low, u32 high)
+static int notrace pvm_write_msr_safe(u32 msr, u64 base)
 {
-	unsigned long base = ((u64)high << 32) | low;
 	u64 pvcs_pa;
 
 	switch (msr) {
@@ -137,16 +137,16 @@ static int notrace pvm_write_msr_safe(unsigned int msr, u32 low, u32 high)
 		 */
 		pvcs_pa = slow_virt_to_phys(this_cpu_ptr(&pvm_vcpu_struct));
 
-		wrmsrl(MSR_PVM_VCPU_STRUCT, pvcs_pa);
+		wrmsrq(MSR_PVM_VCPU_STRUCT, pvcs_pa);
 		return 0;
 	default:
 		return pvm_hypercall2(PVM_HC_WRMSR, msr, base);
 	}
 }
 
-static void notrace pvm_write_msr(unsigned int msr, u32 low, u32 high)
+static void notrace pvm_write_msr(u32 msr, u64 val)
 {
-	pvm_write_msr_safe(msr, low, high);
+	pvm_write_msr_safe(msr, val);
 }
 
 static void pvm_load_tls(struct thread_struct *t, unsigned int cpu)
@@ -473,9 +473,8 @@ void __init pvm_early_setup(void)
 	setup_force_cpu_cap(X86_FEATURE_KVM_PVM_GUEST);
 	setup_force_cpu_cap(X86_FEATURE_PV_GUEST);
 
-	/* Don't use SYSENTER (Intel) and SYSCALL32 (AMD) in vdso. */
-	setup_clear_cpu_cap(X86_FEATURE_SYSENTER32);
-	setup_clear_cpu_cap(X86_FEATURE_SYSCALL32);
+	/* Don't use SYSENTER (Intel) or SYSCALL32 (AMD) in the vDSO. */
+	setup_clear_cpu_cap(X86_FEATURE_SYSFAST32);
 
 	/* PVM takes care of %gs when switching to usermode for us */
 	pv_ops.cpu.load_gs_index = pvm_load_gs_index;
@@ -501,8 +500,8 @@ void __init pvm_early_setup(void)
 	pv_ops.mmu.flush_tlb_kernel = pvm_flush_tlb_kernel;
 	pv_ops.mmu.flush_tlb_one_user = pvm_flush_tlb_one_user;
 
-	wrmsrl(MSR_PVM_VCPU_STRUCT, __pa(this_cpu_ptr(&pvm_vcpu_struct)));
-	wrmsrl(MSR_PVM_EVENT_ENTRY, (unsigned long)(void *)pvm_early_kernel_event_entry - 512);
+	wrmsrq(MSR_PVM_VCPU_STRUCT, __pa(this_cpu_ptr(&pvm_vcpu_struct)));
+	wrmsrq(MSR_PVM_EVENT_ENTRY, (unsigned long)(void *)pvm_early_kernel_event_entry - 512);
 
 	pvm_early_patch();
 }
@@ -512,14 +511,14 @@ void pvm_setup_event_handling(void)
 	if (boot_cpu_has(X86_FEATURE_KVM_PVM_GUEST)) {
 		u64 xpa = slow_virt_to_phys(this_cpu_ptr(&pvm_vcpu_struct));
 
-		wrmsrl(MSR_PVM_VCPU_STRUCT, xpa);
-		wrmsrl(MSR_PVM_EVENT_ENTRY, (unsigned long)(void *)pvm_user_event_entry);
-		wrmsrl(MSR_PVM_RETU_RIP, (unsigned long)(void *)pvm_retu_rip);
+		wrmsrq(MSR_PVM_VCPU_STRUCT, xpa);
+		wrmsrq(MSR_PVM_EVENT_ENTRY, (unsigned long)(void *)pvm_user_event_entry);
+		wrmsrq(MSR_PVM_RETU_RIP, (unsigned long)(void *)pvm_retu_rip);
 
 		/*
 		 * PVM spec requires the hypervisor-maintained
 		 * MSR_KERNEL_GS_BASE to be the same as the kernel GSBASE for
-		 * event delivery for user mode. wrmsrl(MSR_KERNEL_GS_BASE)
+		 * event delivery for user mode. wrmsrq(MSR_KERNEL_GS_BASE)
 		 * accesses only the user GSBASE in the PVCS via
 		 * pvm_write_msr() without hypervisor involved, so use
 		 * PVM_HC_WRMSR instead.
@@ -614,7 +613,7 @@ bool __init pvm_kernel_layout_relocate(void)
 	area_size = max_pfn << PAGE_SHIFT;
 	if (area_size > direct_mapping_size)
 		panic("The memory size is too large for directing mapping area");
-	physmem_end = direct_mapping_size;
+	direct_map_physmem_end = direct_mapping_size;
 
 	vmalloc_base = page_offset_base + direct_mapping_size + hole_size;
 	vmemory_end = vmalloc_base + vmalloc_size;

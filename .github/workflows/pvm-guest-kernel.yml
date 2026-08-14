@@ -1,0 +1,139 @@
+name: PVM kernels
+
+on:
+  push:
+    branches:
+      - "pvm-*"
+  pull_request:
+    branches:
+      - "pvm-*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pvm-kernels-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guest:
+    name: Build guest kernel
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            bc \
+            bison \
+            build-essential \
+            flex \
+            libelf-dev \
+            libssl-dev
+
+      - name: Configure full-featured PVM guest
+        run: |
+          make ARCH=x86 x86_64_defconfig
+          scripts/kconfig/merge_config.sh -m \
+            .config kernel/configs/virt_pvm_full_guest.config
+          make ARCH=x86 olddefconfig
+          scripts/check-pvm-full-guest-config.sh .config
+
+      - name: Build bzImage
+        run: make --silent ARCH=x86 -j"$(nproc)" bzImage
+
+      - name: Upload guest kernel
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pvm-full-guest-kernel-${{ github.sha }}
+          path: |
+            arch/x86/boot/bzImage
+            .config
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+          include-hidden-files: true
+
+  host:
+    name: Build host Debian packages
+    runs-on: ubuntu-26.04
+    timeout-minutes: 300
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install build and packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            bc \
+            bison \
+            build-essential \
+            cpio \
+            debhelper \
+            dpkg-dev \
+            dwarves \
+            fakeroot \
+            flex \
+            kmod \
+            libdw-dev \
+            libelf-dev \
+            libssl-dev \
+            lz4 \
+            python3 \
+            rsync \
+            xz-utils \
+            zstd
+
+      - name: Configure broad PVM host kernel
+        run: |
+          cp kernel/configs/virt_pvm_host_known_good.config .config
+          scripts/kconfig/merge_config.sh -Q -m \
+            .config kernel/configs/virt_pvm_test_host.config
+          make ARCH=x86 olddefconfig
+          scripts/check-pvm-host-config.sh .config
+
+      - name: Build Debian packages
+        env:
+          KBUILD_BUILD_HOST: github.com
+          KBUILD_BUILD_USER: pvm
+          KDEB_CHANGELOG_DIST: resolute
+          KDEB_SOURCENAME: linux-pvm
+          LOCALVERSION: -pvm
+        run: |
+          kernel_version="$(make --silent kernelversion | sed 's/-rc/~rc/')"
+          export KDEB_PKGVERSION="${kernel_version}+pvm.${GITHUB_RUN_NUMBER}"
+          make --silent ARCH=x86 -j"$(nproc)" bindeb-pkg
+
+      - name: Collect host packages
+        run: |
+          mkdir -p artifacts
+          cp ../linux-image-*.deb artifacts/
+          cp ../linux-headers-*.deb artifacts/
+          for module in ena igc i915; do
+            dpkg-deb --contents artifacts/linux-image-*.deb | \
+              grep "/${module}\\.ko$" >/dev/null
+          done
+
+      # upload-artifact makes this available for download as a zip archive.
+      - name: Upload host Debian package archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pvm-host-kernel-debs
+          path: artifacts/*.deb
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0

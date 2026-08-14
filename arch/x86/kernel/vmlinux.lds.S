@@ -170,6 +170,13 @@ SECTIONS
 
 	} :text = 0xcccccccc
 
+#ifdef CONFIG_PVM_GUEST
+	/* PVM event entry used before the normal event handlers are installed. */
+	.head.text : AT(ADDR(.head.text) - LOAD_OFFSET) {
+		HEAD_TEXT
+	} :text = 0xcccccccc
+#endif
+
 	/* End of text section, which should occupy whole number of pages */
 	_etext = .;
 	. = ALIGN(PAGE_SIZE);

@@ -99,7 +99,7 @@ config X86
 	select ARCH_HAS_DMA_OPS			if GART_IOMMU || XEN
 	select ARCH_HAS_EARLY_DEBUG		if KGDB
 	select ARCH_HAS_ELF_RANDOMIZE
-	select ARCH_HAS_EXECMEM_ROX		if X86_64 && STRICT_MODULE_RWX
+	select ARCH_HAS_EXECMEM_ROX		if X86_64 && (STRICT_KERNEL_RWX || STRICT_MODULE_RWX)
 	select ARCH_HAS_FAST_MULTIPLIER
 	select ARCH_HAS_FORTIFY_SOURCE
 	select ARCH_HAS_GCOV_PROFILE_ALL
@@ -260,7 +260,7 @@ config X86
 	select HAVE_FUNCTION_GRAPH_TRACER	if X86_32 || (X86_64 && DYNAMIC_FTRACE)
 	select HAVE_FUNCTION_TRACER
 	select HAVE_GCC_PLUGINS
-	select HAVE_HW_BREAKPOINT
+	select HAVE_HW_BREAKPOINT		if !PVM_GUEST_MINIMAL
 	select HAVE_IOREMAP_PROT
 	select HAVE_IRQ_EXIT_ON_IRQ_STACK	if X86_64
 	select HAVE_IRQ_TIME_ACCOUNTING
@@ -279,7 +279,7 @@ config X86
 	select HAVE_RETHOOK
 	select HAVE_KLP_BUILD			if X86_64
 	select HAVE_LIVEPATCH			if X86_64
-	select HAVE_MIXED_BREAKPOINTS_REGS
+	select HAVE_MIXED_BREAKPOINTS_REGS	if !PVM_GUEST_MINIMAL
 	select HAVE_MOD_ARCH_SPECIFIC
 	select HAVE_MOVE_PMD
 	select HAVE_MOVE_PUD
@@ -330,7 +330,7 @@ config X86
 	select NUMA_MEMBLKS			if NUMA
 	select PCI_DOMAINS			if PCI
 	select PCI_LOCKLESS_CONFIG		if PCI
-	select PERF_EVENTS
+	select PERF_EVENTS			if !PVM_GUEST_MINIMAL
 	select RTC_LIB
 	select RTC_MC146818_LIB
 	select SPARSE_IRQ
@@ -354,7 +354,7 @@ config X86
 
 config INSTRUCTION_DECODER
 	def_bool y
-	depends on KPROBES || PERF_EVENTS || UPROBES
+	depends on KPROBES || PERF_EVENTS || UPROBES || PVM_GUEST_MINIMAL
 
 config OUTPUT_FORMAT
 	string
@@ -858,11 +858,21 @@ config PVM_GUEST
 	bool "PVM Guest support"
 	depends on X86_64 && KVM_GUEST && X86_PIE && !KASAN
 	select PARAVIRT_XXL
+	select PVH
 	select RANDOMIZE_MEMORY
 	default n
 	help
 	  This option enables the kernel to run as a PVM guest under the PVM
 	  hypervisor.
+
+config PVM_GUEST_MINIMAL
+	bool "Remove bare-metal-only facilities from PVM guest kernels"
+	depends on PVM_GUEST && EXPERT
+	help
+	  Remove facilities that cannot be used by a purpose-built PVM guest,
+	  including CPU microcode loading, hardware breakpoints, and perf events.
+	  Do not enable this for a general-purpose kernel that may also boot on
+	  bare metal.
 
 config ARCH_CPUIDLE_HALTPOLL
 	def_bool n
@@ -1338,7 +1348,7 @@ config X86_REBOOTFIXUPS
 
 config MICROCODE
 	def_bool y
-	depends on CPU_SUP_AMD || CPU_SUP_INTEL
+	depends on (CPU_SUP_AMD || CPU_SUP_INTEL) && !PVM_GUEST_MINIMAL
 	select CRYPTO_LIB_SHA256 if CPU_SUP_AMD
 
 config MICROCODE_INITRD32

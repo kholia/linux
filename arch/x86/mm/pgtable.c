@@ -543,6 +543,7 @@ pud_t pudp_invalidate(struct vm_area_struct *vma, unsigned long address,
 
 unsigned long __FIXADDR_TOP __ro_after_init = __FIXADDR_TOP_BASE;
 EXPORT_SYMBOL(__FIXADDR_TOP);
+SYM_PIC_ALIAS(__FIXADDR_TOP);
 
 /**
  * reserve_top_address - Reserve a hole in the top of the kernel address space
