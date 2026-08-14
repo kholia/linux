@@ -6,10 +6,11 @@
 #include <asm/fred.h>
 #include <asm/desc.h>
 
-#if IS_ENABLED(CONFIG_KVM_INTEL)
+#if IS_ENABLED(CONFIG_KVM_INTEL) || IS_ENABLED(CONFIG_KVM_PVM)
 /*
- * On VMX, NMIs and IRQs (as configured by KVM) are acknowledged by hardware as
- * part of the VM-Exit, i.e. the event itself is consumed as part the VM-Exit.
+ * On VMX and PVM, NMIs and IRQs (as configured by KVM) are acknowledged by
+ * hardware as part of the VM-Exit, i.e. the event itself is consumed as part
+ * of the VM-Exit.
  * x86_entry_from_kvm() is invoked by KVM to effectively forward NMIs and IRQs
  * to the kernel for servicing.  On SVM, a.k.a. AMD, the NMI/IRQ VM-Exit is
  * purely a signal that an NMI/IRQ is pending, i.e. the event that triggered

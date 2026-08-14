@@ -57,7 +57,7 @@ SYM_CODE_START_NOALIGN(asm_fred_entrypoint_kernel)
 	ERETS
 SYM_CODE_END(asm_fred_entrypoint_kernel)
 
-#if IS_ENABLED(CONFIG_KVM_INTEL)
+#if IS_ENABLED(CONFIG_KVM_INTEL) || IS_ENABLED(CONFIG_KVM_PVM)
 SYM_FUNC_START(asm_fred_entry_from_kvm)
 	ANNOTATE_NOENDBR
 	push %rbp

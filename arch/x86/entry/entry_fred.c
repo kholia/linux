@@ -285,7 +285,7 @@ __visible noinstr void fred_entry_from_kernel(struct pt_regs *regs)
 	return fred_bad_type(regs, error_code);
 }
 
-#if IS_ENABLED(CONFIG_KVM_INTEL)
+#if IS_ENABLED(CONFIG_KVM_INTEL) || IS_ENABLED(CONFIG_KVM_PVM)
 __visible noinstr void __fred_entry_from_kvm(struct pt_regs *regs)
 {
 	switch (regs->fred_ss.type) {

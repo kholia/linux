@@ -172,6 +172,7 @@ config KVM_AMD_SEV
 config KVM_PVM
 	tristate "Pagetable-based PV Virtual Machine"
 	depends on KVM && X86_64
+	select X86_FRED
 	help
 	  Provides Pagetable-based PV Virtual Machine for KVM.
 

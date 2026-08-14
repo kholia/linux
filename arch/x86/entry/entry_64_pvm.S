@@ -13,7 +13,7 @@
 .macro PUSH_IRET_FRAME_FROM_PVCS user:req
 	movq	%rsp,	%r11
 	.if \user == 1
-		movq	PER_CPU_VAR(pcpu_hot + X86_top_of_stack), %rsp
+		movq	PER_CPU_VAR(cpu_current_top_of_stack), %rsp
 
 		movl	PER_CPU_VAR(pvm_vcpu_struct + PVCS_user_ss), %ecx
 		andl	$0xFFFF, %ecx
@@ -106,6 +106,7 @@ SYM_CODE_START(entry_SYSCALL_64_pvm)
 	PUSH_REGS_AND_HANDLE_EVENT handler=pvm_event
 	POP_REGS
 	addq	$8, %rsp
+	UNWIND_HINT_ENTRY
 	jmp	entry_SYSCALL_64_after_hwframe
 SYM_CODE_END(entry_SYSCALL_64_pvm)
 
@@ -124,16 +125,19 @@ SYM_FUNC_START(pvm_hypercall)
 SYM_FUNC_END(pvm_hypercall)
 
 SYM_FUNC_START(pvm_save_fl)
+	ENDBR
 	movq	PER_CPU_VAR(pvm_vcpu_struct + PVCS_event_flags), %rax
 	RET
 SYM_FUNC_END(pvm_save_fl)
 
 SYM_FUNC_START(pvm_irq_disable)
+	ENDBR
 	btrq	$X86_EFLAGS_IF_BIT, PER_CPU_VAR(pvm_vcpu_struct + PVCS_event_flags)
 	RET
 SYM_FUNC_END(pvm_irq_disable)
 
 SYM_FUNC_START(pvm_irq_enable)
+	ENDBR
 	/* set X86_EFLAGS_IF */
 	orq	$X86_EFLAGS_IF, PER_CPU_VAR(pvm_vcpu_struct + PVCS_event_flags)
 	btq	$PVM_EVENT_FLAGS_IP_BIT, PER_CPU_VAR(pvm_vcpu_struct + PVCS_event_flags)
@@ -159,6 +163,7 @@ SYM_CODE_START(pvm_user_event_entry)
 	PUSH_REGS_AND_HANDLE_EVENT handler=pvm_event
 
 SYM_INNER_LABEL(pvm_restore_regs_and_return_to_usermode, SYM_L_GLOBAL)
+	ANNOTATE_NOENDBR
 	STACKLEAK_ERASE
 	POP_REGS_AND_LOAD_IRET_FRAME_INTO_PVCS
 SYM_INNER_LABEL(pvm_retu_rip, SYM_L_GLOBAL)
@@ -223,6 +228,7 @@ SYM_CODE_START(pvm_kernel_event_entry)
 	jz	.L_pvm_supervisor_iret
 	orq	$X86_EFLAGS_IF, PER_CPU_VAR(pvm_vcpu_struct + PVCS_event_flags)
 .L_pvm_supervisor_iret_irq_enabled_start:
+	ANNOTATE_NOENDBR
 	btq	$PVM_EVENT_FLAGS_IP_BIT, PER_CPU_VAR(pvm_vcpu_struct + PVCS_event_flags)
 	jc	.L_pvm_supervisor_iret_irq_pending
 .L_pvm_supervisor_iret:
@@ -237,6 +243,7 @@ SYM_CODE_START(pvm_kernel_event_entry)
 	movq	8*6(%rsp), %rcx
 	jmp	.L_pvm_supervisor_iret
 .L_pvm_supervisor_iret_irq_enabled_end:
+	ANNOTATE_NOENDBR
 SYM_CODE_END(pvm_kernel_event_entry)
 
 .pushsection .head.text, "ax"
