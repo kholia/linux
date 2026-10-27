@@ -117,6 +117,7 @@ struct cpu_entry_area {
 	 */
 	struct cea_exception_stacks estacks;
 #endif
+#if defined(CONFIG_CPU_SUP_INTEL) && defined(CONFIG_PERF_EVENTS)
 	/*
 	 * Per CPU debug store for Intel performance monitoring. Wastes a
 	 * full page at the moment.
@@ -127,6 +128,7 @@ struct cpu_entry_area {
 	 * Reserve enough fixmap PTEs.
 	 */
 	struct debug_store_buffers cpu_debug_buffers;
+#endif
 };
 
 #define CPU_ENTRY_AREA_SIZE		(sizeof(struct cpu_entry_area))

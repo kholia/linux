@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 #include <linux/linkage.h>
+#include <linux/objtool.h>
 #include <asm/percpu.h>
 #include <asm/processor-flags.h>
 
@@ -18,6 +19,8 @@
  * Notably this is not LOCK prefixed and is not safe against NMIs
  */
 SYM_FUNC_START(this_cpu_cmpxchg16b_emu)
+	/* PVM takes this address only to patch the function body in place. */
+	ANNOTATE_NOENDBR
 
 	pushfq
 	cli
