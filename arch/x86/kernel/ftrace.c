@@ -172,7 +172,7 @@ ftrace_modify_initial_code(struct module *mod, unsigned long ip, unsigned const 
 
 	/* replace the text with the new text */
 	if (ftrace_poke_late)
-		text_poke_queue((void *)ip, replaced, MCOUNT_INSN_SIZE + 1, NULL);
+		smp_text_poke_batch_add((void *)ip, replaced, MCOUNT_INSN_SIZE + 1, NULL);
 	else
 		text_poke_early((void *)ip, replaced, MCOUNT_INSN_SIZE + 1);
 	return 0;
