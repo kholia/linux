@@ -45,6 +45,7 @@ void x86_virt_unregister_emergency_callback(cpu_emergency_virt_cb *callback)
 }
 EXPORT_SYMBOL_FOR_KVM(x86_virt_unregister_emergency_callback);
 
+#if IS_ENABLED(CONFIG_KVM_INTEL) || IS_ENABLED(CONFIG_KVM_AMD)
 static void x86_virt_invoke_kvm_emergency_callback(void)
 {
 	cpu_emergency_virt_cb *kvm_callback;
@@ -66,6 +67,7 @@ static void x86_virt_invoke_kvm_emergency_callback(void)
 	if (kvm_callback)
 		kvm_callback();
 }
+#endif
 
 #if IS_ENABLED(CONFIG_KVM_INTEL)
 static DEFINE_PER_CPU(struct vmcs *, root_vmcs);

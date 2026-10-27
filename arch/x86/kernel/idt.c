@@ -268,7 +268,7 @@ void __init idt_setup_early_pf(void)
 }
 #endif
 
-#if IS_ENABLED(CONFIG_KVM_INTEL) && !defined(CONFIG_X86_64)
+#if (IS_ENABLED(CONFIG_KVM_INTEL) || IS_ENABLED(CONFIG_KVM_PVM)) && !defined(CONFIG_X86_64)
 void idt_entry_from_kvm(unsigned int vector)
 {
 	idt_do_interrupt_irqoff(gate_offset(idt_table + vector));

@@ -10,6 +10,8 @@
 #include <asm/siginfo.h>			/* TRAP_TRACE, ... */
 #include <asm/trap_pf.h>
 
+struct stack_info;
+
 #ifdef CONFIG_X86_64
 asmlinkage __visible notrace struct pt_regs *sync_regs(struct pt_regs *eregs);
 asmlinkage __visible notrace

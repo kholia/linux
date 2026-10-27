@@ -47,6 +47,7 @@
  *	pointer to pt_regs (on top of sp0 or IST stack) with guest registers.
  */
 SYM_FUNC_START(switcher_enter_guest)
+	ENDBR
 	pushq	%rbp
 	pushq	%r15
 	pushq	%r14
@@ -97,6 +98,7 @@ SYM_INNER_LABEL(switcher_return_from_guest, SYM_L_GLOBAL)
 	popq	%rbp
 	RET
 SYM_FUNC_END(switcher_enter_guest)
+STACK_FRAME_NON_STANDARD(switcher_enter_guest)
 EXPORT_SYMBOL_GPL(switcher_enter_guest)
 
 .macro canonical_rcx
@@ -107,13 +109,8 @@ EXPORT_SYMBOL_GPL(switcher_enter_guest)
 	 * Change top bits to match most significant bit (47th or 56th bit
 	 * depending on paging mode) in the address.
 	 */
-#ifdef CONFIG_X86_5LEVEL
 	ALTERNATIVE "shl $(64 - 48), %rcx; sar $(64 - 48), %rcx", \
 		    "shl $(64 - 57), %rcx; sar $(64 - 57), %rcx", X86_FEATURE_LA57
-#else
-	shl	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
-	sar	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx
-#endif
 .endm
 
 SYM_CODE_START(entry_SYSCALL_64_switcher)
