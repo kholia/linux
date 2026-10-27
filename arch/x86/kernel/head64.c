@@ -72,6 +72,7 @@ EXPORT_SYMBOL(vmemmap_base);
 #ifdef CONFIG_X86_PIE
 unsigned long kernel_map_base __ro_after_init = __START_KERNEL_map;
 EXPORT_SYMBOL(kernel_map_base);
+SYM_PIC_ALIAS(kernel_map_base);
 #endif
 
 #ifdef CONFIG_PVM_GUEST
@@ -108,14 +109,15 @@ again:
 	pgd = *pgd_p;
 
 	/*
-	 * The use of __START_KERNEL_map rather than __PAGE_OFFSET here is
+	 * The use of KERNEL_MAP_BASE rather than __PAGE_OFFSET here is
 	 * critical -- __PAGE_OFFSET would point us back into the dynamic
-	 * range and we might end up looping forever...
+	 * range and we might end up looping forever.  A PIE kernel's image
+	 * mapping is relocated, so __START_KERNEL_map is not valid here.
 	 */
 	if (!pgtable_l5_enabled())
 		p4d_p = pgd_p;
 	else if (pgd)
-		p4d_p = (p4dval_t *)((pgd & PTE_PFN_MASK) + __START_KERNEL_map - phys_base);
+		p4d_p = (p4dval_t *)((pgd & PTE_PFN_MASK) + KERNEL_MAP_BASE - phys_base);
 	else {
 		if (next_early_pgt >= EARLY_DYNAMIC_PAGE_TABLES) {
 			reset_early_page_tables();
@@ -124,13 +126,13 @@ again:
 
 		p4d_p = (p4dval_t *)early_dynamic_pgts[next_early_pgt++];
 		memset(p4d_p, 0, sizeof(*p4d_p) * PTRS_PER_P4D);
-		*pgd_p = (pgdval_t)p4d_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
+		*pgd_p = (pgdval_t)p4d_p - KERNEL_MAP_BASE + phys_base + _KERNPG_TABLE;
 	}
 	p4d_p += p4d_index(address);
 	p4d = *p4d_p;
 
 	if (p4d)
-		pud_p = (pudval_t *)((p4d & PTE_PFN_MASK) + __START_KERNEL_map - phys_base);
+		pud_p = (pudval_t *)((p4d & PTE_PFN_MASK) + KERNEL_MAP_BASE - phys_base);
 	else {
 		if (next_early_pgt >= EARLY_DYNAMIC_PAGE_TABLES) {
 			reset_early_page_tables();
@@ -139,13 +141,13 @@ again:
 
 		pud_p = (pudval_t *)early_dynamic_pgts[next_early_pgt++];
 		memset(pud_p, 0, sizeof(*pud_p) * PTRS_PER_PUD);
-		*p4d_p = (p4dval_t)pud_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
+		*p4d_p = (p4dval_t)pud_p - KERNEL_MAP_BASE + phys_base + _KERNPG_TABLE;
 	}
 	pud_p += pud_index(address);
 	pud = *pud_p;
 
 	if (pud)
-		pmd_p = (pmdval_t *)((pud & PTE_PFN_MASK) + __START_KERNEL_map - phys_base);
+		pmd_p = (pmdval_t *)((pud & PTE_PFN_MASK) + KERNEL_MAP_BASE - phys_base);
 	else {
 		if (next_early_pgt >= EARLY_DYNAMIC_PAGE_TABLES) {
 			reset_early_page_tables();
@@ -154,7 +156,7 @@ again:
 
 		pmd_p = (pmdval_t *)early_dynamic_pgts[next_early_pgt++];
 		memset(pmd_p, 0, sizeof(*pmd_p) * PTRS_PER_PMD);
-		*pud_p = (pudval_t)pmd_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
+		*pud_p = (pudval_t)pmd_p - KERNEL_MAP_BASE + phys_base + _KERNPG_TABLE;
 	}
 	pmd_p[pmd_index(address)] = pmd;
 
@@ -242,13 +244,13 @@ asmlinkage __visible void __init __noreturn x86_64_start_kernel(char * real_mode
 	 * Build-time sanity checks on the kernel image and module
 	 * area mappings. (these are purely build-time and produce no code)
 	 */
-	BUILD_BUG_ON(MODULES_VADDR < __START_KERNEL_map);
-	BUILD_BUG_ON(MODULES_VADDR - __START_KERNEL_map < KERNEL_IMAGE_SIZE);
+	BUILD_BUG_ON(RAW_MODULES_VADDR < __START_KERNEL_map);
+	BUILD_BUG_ON(RAW_MODULES_VADDR - __START_KERNEL_map < KERNEL_IMAGE_SIZE);
 	BUILD_BUG_ON(MODULES_LEN + KERNEL_IMAGE_SIZE > 2*PUD_SIZE);
 	BUILD_BUG_ON((__START_KERNEL_map & ~PMD_MASK) != 0);
-	BUILD_BUG_ON((MODULES_VADDR & ~PMD_MASK) != 0);
-	BUILD_BUG_ON(!(MODULES_VADDR > __START_KERNEL));
-	MAYBE_BUILD_BUG_ON(!(((MODULES_END - 1) & PGDIR_MASK) ==
+	BUILD_BUG_ON((RAW_MODULES_VADDR & ~PMD_MASK) != 0);
+	BUILD_BUG_ON(!(RAW_MODULES_VADDR > __START_KERNEL));
+	MAYBE_BUILD_BUG_ON(!(((RAW_MODULES_END - 1) & PGDIR_MASK) ==
 				(__START_KERNEL & PGDIR_MASK)));
 
 	cr4_init_shadow();
@@ -341,11 +343,11 @@ void early_setup_idt(void)
 }
 
 #ifdef CONFIG_X86_PIE
-void __head startup_64_apply_relocations(struct boot_params *bp)
+void __init startup_64_apply_relocations(struct boot_params *bp)
 {
 	extern const Elf64_Rela __rela_start[], __rela_end[];
 	extern const u64 __relr_start[], __relr_end[];
-	u64 va_offset = (u64)RIP_REL_REF(_text) - __START_KERNEL;
+	u64 va_offset = (u64)rip_rel_ptr(_text) - __START_KERNEL;
 	u64 va_shift = bp->kaslr_va_shift;
 	u64 *place = NULL;
 
@@ -379,13 +381,12 @@ void __head startup_64_apply_relocations(struct boot_params *bp)
 extern unsigned long pvm_range_start;
 extern unsigned long pvm_range_end;
 
-static bool __head pvm_pgtable_l5_enabled(void)
+static bool __init pvm_pgtable_l5_enabled(void)
 {
-	return IS_ENABLED(CONFIG_X86_5LEVEL) &&
-	       (native_read_cr4() & X86_CR4_LA57);
+	return native_read_cr4() & X86_CR4_LA57;
 }
 
-static void __head detect_pvm_range(void)
+static void __init detect_pvm_range(void)
 {
 	unsigned long msr_val;
 	unsigned long index_start, index_end;
@@ -410,7 +411,7 @@ static void __head detect_pvm_range(void)
 		if (((msr_val >> 32) & 0x1ff) != 0x1ff)
 			msr_val |= (0x1ffUL << 32) | (0x1ffUL << 48);
 	}
-	native_wrmsrl(MSR_PVM_LINEAR_ADDRESS_RANGE, msr_val);
+	native_wrmsrq(MSR_PVM_LINEAR_ADDRESS_RANGE, msr_val);
 
 	/*
 	 * early page fault would map page into directing mapping area,
@@ -419,7 +420,7 @@ static void __head detect_pvm_range(void)
 	page_offset_base = pvm_range_start;
 }
 
-void __head pvm_relocate_kernel(struct boot_params *bp)
+void __init pvm_relocate_kernel(struct boot_params *bp)
 {
 	if (pvm_range_end || !pvm_detect())
 		return;

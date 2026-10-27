@@ -43,6 +43,7 @@ EXPORT_PER_CPU_SYMBOL(cpu_dr7);
 /* Per cpu debug address registers values */
 static DEFINE_PER_CPU(unsigned long, cpu_debugreg[HBP_NUM]);
 
+#ifdef CONFIG_HAVE_HW_BREAKPOINT
 /*
  * Stores the breakpoints currently in use on each breakpoint address
  * register for each cpus
@@ -480,6 +481,7 @@ void flush_ptrace_hw_breakpoint(struct task_struct *tsk)
 	t->virtual_dr6 = 0;
 	t->ptrace_dr7 = 0;
 }
+#endif
 
 void hw_breakpoint_restore(void)
 {
@@ -492,6 +494,7 @@ void hw_breakpoint_restore(void)
 }
 EXPORT_SYMBOL_FOR_KVM(hw_breakpoint_restore);
 
+#ifdef CONFIG_HAVE_HW_BREAKPOINT
 /*
  * Handle debug exception notifications.
  *
@@ -591,3 +594,4 @@ void hw_breakpoint_pmu_read(struct perf_event *bp)
 {
 	/* TODO */
 }
+#endif

@@ -28,6 +28,27 @@
 
 #include "cpu.h"
 
+#ifndef CONFIG_MICROCODE
+static u32 intel_cpuid_vfm(void)
+{
+	u32 eax = cpuid_eax(1);
+
+	return IFM(x86_family(eax), x86_model(eax));
+}
+
+u32 intel_get_platform_id(void)
+{
+	unsigned int val[2];
+
+	if ((native_cpuid_ecx(1) & BIT(31)) ||
+	    intel_cpuid_vfm() <= INTEL_PENTIUM_II_KLAMATH)
+		return 0;
+
+	native_rdmsr(MSR_IA32_PLATFORM_ID, val[0], val[1]);
+	return (val[1] >> 18) & 7;
+}
+#endif
+
 /*
  * Processors which have self-snooping capability can handle conflicting
  * memory type across CPUs by snooping its own cache. However, there exists
