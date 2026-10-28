@@ -1378,6 +1378,12 @@ static struct pvm_vcpu_struct *pvm_get_vcpu_struct(struct vcpu_pvm *pvm)
 	struct gfn_to_pfn_cache *gpc = &pvm->pvcs_gpc;
 
 	read_lock_irq(&gpc->lock);
+	/* Events can arrive before the guest has registered a PVCS page. */
+	if (!gpc->active) {
+		read_unlock_irq(&gpc->lock);
+		return NULL;
+	}
+
 	while (!kvm_gpc_check(gpc, PAGE_SIZE)) {
 		read_unlock_irq(&gpc->lock);
 
