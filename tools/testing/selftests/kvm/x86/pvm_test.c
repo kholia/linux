@@ -88,6 +88,35 @@ static void test_pvcs_msr(struct kvm_vm *vm, struct kvm_vcpu *vcpu)
 	vcpu_set_msr(vcpu, MSR_PVM_VCPU_STRUCT, 0);
 }
 
+static void test_event_without_pvcs(bool deactivate)
+{
+	struct kvm_vcpu_events events;
+	struct kvm_vcpu *vcpu;
+	struct kvm_vm *vm;
+
+	vm = vm_create_with_one_vcpu(&vcpu, guest_code);
+	/* Enter PVM mode before injecting an exception. */
+	run_guest(vcpu);
+
+	if (deactivate) {
+		vcpu_set_msr(vcpu, MSR_PVM_VCPU_STRUCT,
+			     addr_gva2gpa(vm, (uintptr_t)&pvcs));
+		vcpu_set_msr(vcpu, MSR_PVM_VCPU_STRUCT, 0);
+	}
+
+	vcpu_events_get(vcpu, &events);
+	events.exception.injected = true;
+	events.exception.nr = GP_VECTOR;
+	events.exception.has_error_code = true;
+	events.exception.error_code = 0;
+	vcpu_events_set(vcpu, &events);
+
+	/* A missing PVCS must shut down the guest without warning in GPC. */
+	vcpu_run(vcpu);
+	TEST_ASSERT_KVM_EXIT_REASON(vcpu, KVM_EXIT_SHUTDOWN);
+	kvm_vm_free(vm);
+}
+
 static void test_entry_msrs(struct kvm_vcpu *vcpu)
 {
 	vcpu_set_msr(vcpu, MSR_PVM_EVENT_ENTRY, 0x500000);
@@ -158,5 +187,7 @@ int main(void)
 	test_entry_msrs(vcpu);
 
 	kvm_vm_free(vm);
+	test_event_without_pvcs(false);
+	test_event_without_pvcs(true);
 	return 0;
 }
